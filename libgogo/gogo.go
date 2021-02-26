@@ -1,6 +1,7 @@
 package libgogo
 
 import (
+	"bufio"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,12 +13,13 @@ import (
 )
 
 type Server struct {
-	sock   net.Listener
-	addr   string
-	port   int
-	host   string
-	root   string
-	strict bool
+	sock      net.Listener
+	addr      string
+	port      int
+	host      string
+	root      string
+	strict    bool
+	blocklist []string
 }
 
 /*
@@ -25,7 +27,7 @@ type Server struct {
  * Possible Errors:
  *   Root doesn't exist or is not a directory
  */
-func NewServer(a string, p int, h string, r string, s bool) (*Server, error) {
+func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server, error) {
 	root, err := filepath.Abs(r)
 	if err != nil {
 		return nil, err
@@ -38,14 +40,43 @@ func NewServer(a string, p int, h string, r string, s bool) (*Server, error) {
 		return nil, err
 	}
 
+	blist := []string{}
+	if bl != "" {
+		file, err := os.Open(bl)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		blist = blocklistFromFile(file)
+	}
+
 	return &Server{
-		sock:   nil,
-		addr:   a,
-		port:   p,
-		host:   h,
-		root:   root,
-		strict: s,
+		sock:      nil,
+		addr:      a,
+		port:      p,
+		host:      h,
+		root:      root,
+		strict:    s,
+		blocklist: blist,
 	}, nil
+}
+
+/*
+ * Returns a slice of all lines in provided file. If any errors are
+ * encountered an empty slice is returned.
+ */
+func blocklistFromFile(file *os.File) []string {
+	bl := []string{}
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		bl = append(bl, scanner.Text())
+	}
+	if scanner.Err() != nil {
+		return []string{}
+	}
+
+	return bl
 }
 
 /*
@@ -64,6 +95,10 @@ func (s *Server) Go() error {
 		conn, err := s.sock.Accept()
 		if err != nil {
 			log.Printf("Error: %s", err.Error())
+			continue
+		}
+		if s.isBlocked(conn.RemoteAddr().String()) {
+			conn.Close()
 			continue
 		}
 
@@ -146,6 +181,19 @@ func (s *Server) interpolate(res string) string {
 	}
 
 	return strings.Replace(res, "\n", "\r\n", -1)
+}
+
+/*
+ * Returns true if the given address is in the Server's blocklist
+ */
+func (s *Server) isBlocked(addr string) bool {
+	for i := 0; i < len(s.blocklist); i++ {
+		if addr[:len(s.blocklist[i])] == s.blocklist[i] {
+			return true
+		}
+	}
+
+	return false
 }
 
 /*

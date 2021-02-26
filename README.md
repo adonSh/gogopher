@@ -17,4 +17,5 @@ Options:
   -h, --host     Hostname to identify with
   -r, --root     Directory to use as root
   -s, --strict   Do not perform interpolation (host, port, etc.)
+  -b, --block    Name of file containing list of blocked IP addresses
 ```

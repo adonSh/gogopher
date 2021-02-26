@@ -14,11 +14,12 @@ import (
  */
 func ParseArgs(args []string) (*Server, error) {
 	var err error
-	addr   := "127.0.0.1"
-	port   := 7000
-	host   := "localhost"
-	root   := "."
-	strict := false
+	addr      := "127.0.0.1"
+	port      := 7000
+	host      := "localhost"
+	root      := "."
+	strict    := false
+	blocklist := ""
 
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; a {
@@ -61,6 +62,11 @@ func ParseArgs(args []string) (*Server, error) {
 			fallthrough
 		case "-s":
 			strict = true
+		case "--block":
+			fallthrough
+		case "-b":
+			blocklist = args[i + 1]
+			i = i + 1
 		case "--help":
 			fallthrough
 		case "-?":
@@ -70,7 +76,7 @@ func ParseArgs(args []string) (*Server, error) {
 		}
 	}
 
-	s, err := NewServer(addr, port, host, root, strict)
+	s, err := NewServer(addr, port, host, root, strict, blocklist)
 	if err != nil {
 		return nil, err
 	}
@@ -89,5 +95,6 @@ func helpMsg() string {
 	       "    -p, --port     TCP port to listen on\n" +
 	       "    -h, --host     Hostname to identify with\n" +
 	       "    -r, --root     Directory to use as root\n" +
-	       "    -s, --strict   Do not perform interpolation (host, port, etc.)"
+	       "    -s, --strict   Do not perform interpolation (host, port, etc.)\n" +
+	       "    -b, --block    Name of file containing list of blocked IP addresses"
 }
