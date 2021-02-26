@@ -63,7 +63,7 @@ func (s *Server) Go() error {
 	for {
 		conn, err := s.sock.Accept()
 		if err != nil {
-			log.Print("Error: " + err.Error())
+			log.Printf("Error: %s", err.Error())
 			continue
 		}
 
@@ -73,7 +73,7 @@ func (s *Server) Go() error {
 			req := make([]byte, 64)
 			n, err := conn.Read(req)
 			if err != nil {
-				log.Print("Error: " + err.Error())
+				log.Printf("Error: %s", err.Error())
 				return
 			}
 
@@ -85,10 +85,10 @@ func (s *Server) Go() error {
 				}
 			}
 
-			log.Print(conn.RemoteAddr().String() + ": " + string(req))
+			log.Printf("%s: %s", conn.RemoteAddr().String(), string(req))
 			_, err = conn.Write(s.handle(req))
 			if err != nil {
-				log.Print("Error:" + err.Error())
+				log.Printf("Error: %s", err.Error())
 				return
 			}
 		}()
