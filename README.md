@@ -8,6 +8,12 @@ entering literal hostnames and ports in all your gophermaps, you can use \host
 and \port and the server will substitute the actual hostname and port it is
 listening on.
 
+## Building:
+
+Just run `go build`.
+
+## Usage:
+
 ```
 Usage: gogopher [-?s] [-a address] [-p port] [-h hostname] [-r root]
 Options:
