@@ -20,6 +20,7 @@ type Server struct {
 	root      string
 	strict    bool
 	blocklist []string
+	logger    *log.Logger
 }
 
 /*
@@ -50,6 +51,11 @@ func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server,
 		blist = blocklistFromFile(file)
 	}
 
+	logFile, err := os.OpenFile("gogo.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644);
+	if err != nil {
+		return nil, err
+	}
+
 	return &Server{
 		sock:      nil,
 		addr:      a,
@@ -58,6 +64,7 @@ func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server,
 		root:      root,
 		strict:    s,
 		blocklist: blist,
+		logger:    log.New(logFile, "", log.Flags()),
 	}, nil
 }
 
@@ -94,7 +101,7 @@ func (s *Server) Go() error {
 	for {
 		conn, err := s.sock.Accept()
 		if err != nil {
-			log.Printf("Error: %s", err.Error())
+			s.logger.Printf("Error: %s", err.Error())
 			continue
 		}
 		if s.isBlocked(conn.RemoteAddr().String()) {
@@ -108,7 +115,7 @@ func (s *Server) Go() error {
 			req := make([]byte, 64)
 			n, err := conn.Read(req)
 			if err != nil {
-				log.Printf("Error: %s", err.Error())
+				s.logger.Printf("Error: %s", err.Error())
 				return
 			}
 
@@ -120,10 +127,10 @@ func (s *Server) Go() error {
 				}
 			}
 
-			log.Printf("%s: %s", conn.RemoteAddr().String(), string(req))
+			s.logger.Printf("%s: %s", conn.RemoteAddr().String(), string(req))
 			_, err = conn.Write(s.handle(req))
 			if err != nil {
-				log.Printf("Error: %s", err.Error())
+				s.logger.Printf("Error: %s", err.Error())
 				return
 			}
 		}()
