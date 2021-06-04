@@ -28,7 +28,7 @@ type Server struct {
  * Possible Errors:
  *   Root doesn't exist or is not a directory
  */
-func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server, error) {
+func NewServer(a string, p int, h string, r string, s bool, bl string, lf string) (*Server, error) {
 	root, err := filepath.Abs(r)
 	if err != nil {
 		return nil, err
@@ -51,9 +51,12 @@ func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server,
 		blist = blocklistFromFile(file)
 	}
 
-	logFile, err := os.OpenFile("gogo.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644);
-	if err != nil {
-		return nil, err
+	logfile := os.Stdout
+	if lf != "" {
+		logfile, err = os.OpenFile(lf, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644);
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Server{
@@ -64,7 +67,7 @@ func NewServer(a string, p int, h string, r string, s bool, bl string) (*Server,
 		root:      root,
 		strict:    s,
 		blocklist: blist,
-		logger:    log.New(logFile, "", log.Flags()),
+		logger:    log.New(logfile, "", log.Flags()),
 	}, nil
 }
 

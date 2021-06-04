@@ -20,6 +20,7 @@ func ParseArgs(args []string) (*Server, error) {
 	root      := "."
 	strict    := false
 	blocklist := ""
+	logfile   := ""
 
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; a {
@@ -67,6 +68,11 @@ func ParseArgs(args []string) (*Server, error) {
 		case "-b":
 			blocklist = args[i + 1]
 			i = i + 1
+		case "--log":
+			fallthrough
+		case "-l":
+			logfile = args[i + 1]
+			i = i + 1
 		case "--help":
 			fallthrough
 		case "-?":
@@ -76,7 +82,7 @@ func ParseArgs(args []string) (*Server, error) {
 		}
 	}
 
-	s, err := NewServer(addr, port, host, root, strict, blocklist)
+	s, err := NewServer(addr, port, host, root, strict, blocklist, logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -96,5 +102,6 @@ func helpMsg() string {
 	       "    -h, --host     Hostname to identify with\n" +
 	       "    -r, --root     Directory to use as root\n" +
 	       "    -s, --strict   Do not perform interpolation (host, port, etc.)\n" +
-	       "    -b, --block    Name of file containing list of blocked IP addresses"
+	       "    -b, --block    Name of file containing list of blocked IP addresses\n" +
+	       "    -l, --log      Name of file to direct logs (default is stdout)"
 }
