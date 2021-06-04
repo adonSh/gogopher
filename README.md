@@ -24,4 +24,5 @@ Options:
   -r, --root     Directory to use as root
   -s, --strict   Do not perform interpolation (host, port, etc.)
   -b, --block    Name of file containing list of blocked IP addresses
+  -l, --log      Name of file to direct logs (default is stdout)
 ```
