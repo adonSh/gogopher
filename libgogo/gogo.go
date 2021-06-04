@@ -53,7 +53,7 @@ func NewServer(a string, p int, h string, r string, s bool, bl string, lf string
 
 	logfile := os.Stdout
 	if lf != "" {
-		logfile, err = os.OpenFile(lf, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644);
+		logfile, err = os.OpenFile(lf, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			return nil, err
 		}
