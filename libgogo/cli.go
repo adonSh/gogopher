@@ -3,20 +3,20 @@ package libgogo
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
 
-/*
- * Returns a Server object with configuration as specified from given args
- * Possible Errors:
- *   Invalid arguments
- *   Missing values
- *   Root does not exist or is not directory
- */
+// Returns a Server object with configuration as specified from given args
+// Possible Errors:
+//   Invalid arguments
+//   Missing values
+//   Root does not exist or is not a directory
 func ParseArgs(args []string) (*Server, error) {
 	var err error
 	addr      := "127.0.0.1"
-	port      := 7000
+	lport     := 7000
 	host      := "localhost"
+	port      := lport
 	root      := "."
 	strict    := false
 	blocklist := ""
@@ -24,14 +24,6 @@ func ParseArgs(args []string) (*Server, error) {
 
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; a {
-		case "--address":
-			fallthrough
-		case "-a":
-			if i + 1 >= len(args) {
-				return nil, errors.New("Address not specified" + helpMsg())
-			}
-			addr = args[i + 1]
-			i = i + 1
 		case "--port":
 			fallthrough
 		case "-p":
@@ -78,11 +70,18 @@ func ParseArgs(args []string) (*Server, error) {
 		case "-?":
 			return nil, errors.New(helpMsg())
 		default:
-			return nil, errors.New("Unrecognized arguments\n" + helpMsg())
+			ap := strings.Split(a, ":")
+			addr = ap[0]
+			if len(ap) > 1 {
+				lport, err = strconv.Atoi(ap[1])
+				if err != nil {
+					return nil, errors.New("Port must be a number" + helpMsg())
+				}
+			}
 		}
 	}
 
-	s, err := NewServer(addr, port, host, root, strict, blocklist, logfile)
+	s, err := NewServer(addr, lport, host, port, root, strict, blocklist, logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -90,16 +89,14 @@ func ParseArgs(args []string) (*Server, error) {
 	return s, nil
 }
 
-/*
- * Returns help message and documented configuration arguments
- */
+// Returns help message and documented configuration arguments
 func helpMsg() string {
-	return "Usage: gogo [-?s] [-a address] [-p port] [-h hostname] [-r root]" +
+	return "Usage: gogo [-?s] [-h hostname] [-p port] [-r root] <address>:<port>" +
 	       "\nOptions:\n" +
 	       "    -?, --help     Print this help message\n" +
-	       "    -a, --address  IP address to listen on\n" +
-	       "    -p, --port     TCP port to listen on\n" +
-	       "    -h, --host     Hostname to identify with\n" +
+	       "    -a, --address  IP address to interpolate\n" +
+	       "    -h, --host     Hostname to use for interpolation\n" +
+	       "    -p, --port     TCP port to use for interpolation\n" +
 	       "    -r, --root     Directory to use as root\n" +
 	       "    -s, --strict   Do not perform interpolation (host, port, etc.)\n" +
 	       "    -b, --block    Name of file containing list of blocked IP addresses\n" +

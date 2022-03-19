@@ -12,23 +12,23 @@ import (
 	"strings"
 )
 
+// The Server object
 type Server struct {
-	sock      net.Listener
-	addr      string
-	port      int
-	host      string
-	root      string
-	strict    bool
-	blocklist []string
-	logger    *log.Logger
+	sock      net.Listener // The actual socket
+	Addr      string       // The address to listen on
+	Lport     int          // The port to listen on
+	host      string       // The hostname to use for interpolation
+	port      int          // The port to use for interpolation
+	root      string       // The root directory to serve
+	strict    bool         // To interpolate or not
+	blocklist []string     // IPs to block
+	logger    *log.Logger  // The logger
 }
 
-/*
- * Returns a new Server object
- * Possible Errors:
- *   Root doesn't exist or is not a directory
- */
-func NewServer(a string, p int, h string, r string, s bool, bl string, lf string) (*Server, error) {
+// Returns a new Server object
+// Possible Errors:
+//   Root doesn't exist or is not a directory
+func NewServer(a string, lp int, h string, p int, r string, s bool, bl string, lf string) (*Server, error) {
 	root, err := filepath.Abs(r)
 	if err != nil {
 		return nil, err
@@ -61,9 +61,10 @@ func NewServer(a string, p int, h string, r string, s bool, bl string, lf string
 
 	return &Server{
 		sock:      nil,
-		addr:      a,
-		port:      p,
+		Addr:      a,
+		Lport:     lp,
 		host:      h,
+		port:      p,
 		root:      root,
 		strict:    s,
 		blocklist: blist,
@@ -71,10 +72,8 @@ func NewServer(a string, p int, h string, r string, s bool, bl string, lf string
 	}, nil
 }
 
-/*
- * Returns a slice of all lines in provided file. If any errors are
- * encountered an empty slice is returned.
- */
+// Returns a slice of all lines in provided file. If any errors are
+// encountered an empty slice is returned.
 func blocklistFromFile(file *os.File) []string {
 	bl := []string{}
 	scanner := bufio.NewScanner(file)
@@ -89,14 +88,12 @@ func blocklistFromFile(file *os.File) []string {
 	return bl
 }
 
-/*
- * Dispatches TCP requests to the Gopher handler
- * Possible Errors:
- *   TCP socket errors
- */
+// Dispatches TCP requests to the Gopher handler
+// Possible Errors:
+//   TCP socket errors
 func (s *Server) Go() error {
 	var err error
-	s.sock, err = net.Listen("tcp4", s.addr + ":" + strconv.Itoa(s.port))
+	s.sock, err = net.Listen("tcp4", s.Addr + ":" + strconv.Itoa(s.Lport))
 	if err != nil {
 		return err
 	}
@@ -122,7 +119,7 @@ func (s *Server) Go() error {
 				return
 			}
 
-			/* Trim newlines or CRLFs */
+			// Trim newlines or CRLFs
 			req = req[:n-1]
 			if n > 1 {
 				if string(req[n-2]) == "\r" {
@@ -142,14 +139,12 @@ func (s *Server) Go() error {
 	return nil
 }
 
-/*
- * Returns appropriate response to given request according to Gopher protocol
- */
+// Returns appropriate response to given request according to Gopher protocol
 func (s *Server) handle(req []byte) []byte {
 	var res []byte
 	path := filepath.Join(s.root, string(req))
 
-	/* Forbid leaving root dir */
+	// Forbid leaving root dir
 	if len(path) < len(s.root) {
 		return s.handle([]byte("/"))
 	}
@@ -176,14 +171,12 @@ func (s *Server) handle(req []byte) []byte {
 	return res
 }
 
-/*
- * Returns the given response with \tags replaced with values from the server.
- * If the strict flag is set, the only interpolation that takes place is
- * replacing Unix newlines with CRLF.
- * Interpolation Tags:
- *   \host -> server's hostname
- *   \port -> server's port number
- */
+// Returns the given response with \tags replaced with values from the server.
+// If the strict flag is set, the only interpolation that takes place is
+// replacing Unix newlines with CRLF.
+// Interpolation Tags:
+//   \host -> server's hostname
+//   \port -> server's port number
 func (s *Server) interpolate(res string) string {
 	if !s.strict {
 		res = strings.Replace(res, "\\host", s.host, -1)
@@ -193,9 +186,7 @@ func (s *Server) interpolate(res string) string {
 	return strings.Replace(res, "\n", "\r\n", -1)
 }
 
-/*
- * Returns true if the given address is in the Server's blocklist
- */
+// Returns true if the given address is in the Server's blocklist
 func (s *Server) isBlocked(addr string) bool {
 	for i := 0; i < len(s.blocklist); i++ {
 		if addr[:len(s.blocklist[i])] == s.blocklist[i] {
@@ -206,9 +197,7 @@ func (s *Server) isBlocked(addr string) bool {
 	return false
 }
 
-/*
- * Returns standard "not found" response
- */
+// Returns standard "not found" response
 func notFound(req string) string {
 	return "3'" + req +
 	       "' does not exist (no handler found)\t\terror.host\t1\r\n"

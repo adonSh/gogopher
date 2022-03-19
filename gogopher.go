@@ -14,6 +14,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("Listening on %s:%d\n", server.Addr, server.Lport)
 	err = server.Go()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
