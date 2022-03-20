@@ -91,10 +91,9 @@ func ParseArgs(args []string) (*Server, error) {
 
 // Returns help message and documented configuration arguments
 func helpMsg() string {
-	return "Usage: gogo [-?s] [-h hostname] [-p port] [-r root] <address>:<port>" +
+	return "Usage: gogopher [-?s] [-h hostname] [-p port] [-r root] <address>:<port>" +
 	       "\nOptions:\n" +
 	       "    -?, --help     Print this help message\n" +
-	       "    -a, --address  IP address to interpolate\n" +
 	       "    -h, --host     Hostname to use for interpolation\n" +
 	       "    -p, --port     TCP port to use for interpolation\n" +
 	       "    -r, --root     Directory to use as root\n" +
