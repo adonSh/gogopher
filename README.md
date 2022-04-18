@@ -15,8 +15,7 @@ Just run `go build`.
 ## Usage:
 
 ```
-Usage: gogopher [-?s] [-a address] [-p port] [-h hostname] [-r root]
-Usage: gogopher [-?s] [-h hostname] [-p port] [-r root] <address>:<port>" +
+Usage: gogopher [-?s] [-h hostname] [-p port] [-r root] <address>:<port>
 Options:
 	-?, --help     Print this help message\n" +
 	-h, --host     Hostname to use for interpolation\n" +
