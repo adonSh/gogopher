@@ -139,8 +139,32 @@ func (s *Server) Go() error {
 	return nil
 }
 
+func handleHTTP(url string) []byte {
+	html := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="1; url=URL">
+  <title>redirect</title>
+</head>
+<body>
+  <p>
+    <a href="URL">URL</a>
+  </p>
+</body>
+</html>
+`
+	return []byte(strings.Replace(html, "URL", url, -1))
+}
+
 // Returns appropriate response to given request according to Gopher protocol
 func (s *Server) handle(req []byte) []byte {
+	if strings.HasPrefix(string(req), "URL:") {
+		return handleHTTP(string(req)[4:])
+	}
+
 	var res []byte
 	path := filepath.Join(s.root, string(req))
 
@@ -199,6 +223,5 @@ func (s *Server) isBlocked(addr string) bool {
 
 // Returns standard "not found" response
 func notFound(req string) string {
-	return "3'" + req +
-	       "' does not exist (no handler found)\t\terror.host\t1\r\n"
+	return "3'" + req + "' does not exist (no handler found)\t\terror.host\t1\r\n"
 }
