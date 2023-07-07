@@ -2,7 +2,7 @@ package libgogo
 
 import (
 	"bufio"
-	"io/ioutil"
+	"bytes"
 	"log"
 	"net"
 	"net/http"
@@ -120,12 +120,7 @@ func (s *Server) Go() error {
 			}
 
 			// Trim newlines or CRLFs
-			req = req[:n-1]
-			if n > 1 {
-				if string(req[n-2]) == "\r" {
-					req = req[:n-2]
-				}
-			}
+			req = bytes.TrimSpace(req[:n])
 
 			s.logger.Printf("%s: %s", conn.RemoteAddr().String(), string(req))
 			_, err = conn.Write(s.handle(req))
@@ -180,16 +175,16 @@ func (s *Server) handle(req []byte) []byte {
 	if err != nil {
 		res = []byte(notFound(string(req)))
 	} else if info.IsDir() {
-		res, err = ioutil.ReadFile(filepath.Join(path, "gophermap"))
+		res, err = os.ReadFile(filepath.Join(path, "gophermap"))
 	} else {
-		res, err = ioutil.ReadFile(path)
+		res, err = os.ReadFile(path)
 	}
 	if err != nil {
 		res = []byte(notFound(string(req)))
 	}
 
-	if http.DetectContentType(res)[:5] == "text/" {
-		return []byte(s.interpolate(string(res)))
+	if strings.HasPrefix(http.DetectContentType(res), "text/") {
+		return []byte(s.normalize(string(res)))
 	}
 
 	return res
@@ -201,7 +196,7 @@ func (s *Server) handle(req []byte) []byte {
 // Interpolation Tags:
 //   \host -> server's hostname
 //   \port -> server's port number
-func (s *Server) interpolate(res string) string {
+func (s *Server) normalize(res string) string {
 	if !s.strict {
 		res = strings.Replace(res, "\\host", s.host, -1)
 		res = strings.Replace(res, "\\port", strconv.Itoa(s.port), -1)
