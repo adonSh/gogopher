@@ -3,6 +3,7 @@ package libgogo
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -88,7 +89,7 @@ func blocklistFromFile(file *os.File) []string {
 	return bl
 }
 
-// Dispatches TCP requests to the Gopher handler
+// Dispatches TCP connections to the Gopher handler
 // Possible Errors:
 //   TCP socket errors
 func (s *Server) Go() error {
@@ -101,40 +102,41 @@ func (s *Server) Go() error {
 	for {
 		conn, err := s.sock.Accept()
 		if err != nil {
-			s.logger.Printf("Error: %s", err.Error())
-			continue
+			return err
 		}
 		if s.isBlocked(conn.RemoteAddr().String()) {
 			conn.Close()
 			continue
 		}
 
-		// kinda quick and dirty :/
-		go func() {
-			defer conn.Close()
-			req := make([]byte, 64)
-			n, err := conn.Read(req)
-			if err != nil {
-				s.logger.Printf("Error: %s", err.Error())
-				return
-			}
-
-			// Trim newlines or CRLFs
-			req = bytes.TrimSpace(req[:n])
-
-			s.logger.Printf("%s: %s", conn.RemoteAddr().String(), string(req))
-			_, err = conn.Write(s.handle(req))
-			if err != nil {
-				s.logger.Printf("Error: %s", err.Error())
-				return
-			}
-		}()
+		go s.handle(conn)
 	}
 
 	return nil
 }
 
-func handleHTTP(url string) []byte {
+func (s *Server) handle(client net.Conn) {
+	defer client.Close()
+
+	req := make([]byte, 64)
+	n, err := client.Read(req)
+	if err != nil {
+		s.logger.Printf("Error: %s", err.Error())
+		return
+	}
+
+	// Trim newlines or CRLFs
+	req = bytes.TrimSpace(req[:n])
+
+	s.logger.Printf("%s: %s", client.RemoteAddr().String(), string(req))
+	_, err = client.Write(s.render(req))
+	if err != nil {
+		s.logger.Printf("Error: %s", err.Error())
+		return
+	}
+}
+
+func httpRedirect(url string) []byte {
 	html := `
 <!DOCTYPE html>
 <html lang="en">
@@ -155,9 +157,9 @@ func handleHTTP(url string) []byte {
 }
 
 // Returns appropriate response to given request according to Gopher protocol
-func (s *Server) handle(req []byte) []byte {
+func (s *Server) render(req []byte) []byte {
 	if strings.HasPrefix(string(req), "URL:") {
-		return handleHTTP(string(req)[4:])
+		return httpRedirect(string(req)[4:])
 	}
 
 	var res []byte
@@ -165,10 +167,10 @@ func (s *Server) handle(req []byte) []byte {
 
 	// Forbid leaving root dir
 	if len(path) < len(s.root) {
-		return s.handle([]byte("/"))
+		return s.render([]byte("/"))
 	}
 	if path[:len(s.root)] != s.root {
-		return s.handle([]byte("/"))
+		return s.render([]byte("/"))
 	}
 
 	info, err := os.Stat(path)
@@ -218,5 +220,6 @@ func (s *Server) isBlocked(addr string) bool {
 
 // Returns standard "not found" response
 func notFound(req string) string {
-	return "3'" + req + "' does not exist (no handler found)\t\terror.host\t1\r\n"
+	msg := fmt.Sprintf("3'%s' does not exist (no handler found)", req)
+	return strings.Join([]string{msg, "error.host", "1\n"}, "\t")
 }
